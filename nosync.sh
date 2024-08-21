@@ -41,6 +41,41 @@ nosync () {
   # Move the original file and create a symbolic link
   if mv "$original_file" "$nosync_file"; then
     ln -s "$nosync_file" "$original_file"
+
+    # Check if inside git repository
+    inside_git_repo=$(git rev-parse --is-inside-work-tree 2>/dev/null)
+
+    if [ "$inside_git_repo" ]; then
+      echo "Inside a git repository."
+
+      # Get the root of the git repository
+      git_root=$(git rev-parse --show-toplevel)
+
+      # Ask the user if they want to add *.nosync to .gitignore
+      read -rp "Do you want to add '*.nosync' to .gitignore at the root of the repository? [y/N] " answer
+      case "$answer" in
+        [yY][eE][sS]|[yY])
+          # Add *.nosync to .gitignore at the root if not already present
+          gitignore_path="${git_root}/.gitignore"
+
+          if [ -e "$gitignore_path" ]; then
+            if ! grep -qx '\*.nosync' "$gitignore_path"; then
+              echo "*.nosync" >> "$gitignore_path"
+              echo "Added '*.nosync' to $gitignore_path."
+            else
+              echo "'*.nosync' is already in $gitignore_path."
+            fi
+          else
+            echo "*.nosync" > "$gitignore_path"
+            echo "Created $gitignore_path and added '*.nosync'."
+          fi
+          ;;
+        *)
+          echo "Skipped adding '*.nosync' to .gitignore."
+          ;;
+      esac
+    fi
+
     echo "Processed: '$original_file' -> '$nosync_file'"
   else
     echo "Error: Failed to move '$original_file'. Skipping."
@@ -49,7 +84,7 @@ nosync () {
 
 # Ensure at least one argument is passed
 if [ $# -eq 0 ]; then
-  echo "Usage: $0 <file1> [file2 ... fileN]"
+  echo "Usage: nosync <file1> [file2 ... fileN]"
   exit 1
 fi
 
