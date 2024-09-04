@@ -29,7 +29,12 @@ install nosync.sh /usr/local/bin/nosync
 ## Usage
 
 ```bash
-nosync <file1> [file2 ... fileN]
+nosync [options] <file1> [file2 ... fileN]
+
+Options:
+  -v, --verbose         Enable verbose output
+  -n, --non-interactive Skip interactive prompts
+  -h, --help            Show this help message
 ```
 
 > [!NOTE]
