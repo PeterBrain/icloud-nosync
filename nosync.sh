@@ -16,28 +16,23 @@ show_help() {
 
 # Log messages in verbose mode
 log() {
-  if [ "$verbose" -eq 1 ]; then
-    echo "$@"
-  fi
+  [ "$verbose" -eq 1 ] && echo "$@"
 }
 
 # Add .nosync extension and create a symbolic link to preserve original name
 nosync () {
-  original_file="$1"
-  nosync_file="${original_file}.nosync"
+  local original_file="$1"
+  local nosync_file="${original_file}.nosync"
 
-  # Check if the file is a symlink
+  # Check if the file is a symlink, the linked file exists and points to the correct .nosync file
   if [ -L "$original_file" ]; then
+    local linked_file
     linked_file=$(readlink "$original_file")
 
-    # Check if the linked file exists
     if [ ! -e "$linked_file" ]; then
-      log "Warning: '$original_file' is a symlink to '$linked_file', but the target no longer exists."
+      log "Warning: '$original_file' is a symlink to a non-existent file '$linked_file'."
       return
-    fi
-
-    # If it's already a symlink pointing to the correct .nosync file, skip
-    if [ "$linked_file" = "$nosync_file" ]; then
+    elif [ "$linked_file" = "$nosync_file" ]; then
       log "Skipping: '$original_file' is already a symlink to '$nosync_file'."
       return
     else
@@ -47,7 +42,7 @@ nosync () {
   fi
 
   # Check if the file already has a .nosync extension
-  if [ "${original_file##*.}" = "nosync" ]; then
+  if [[ "$original_file" == *.nosync ]]; then
     log "Skipping: '$original_file' already has a .nosync extension."
     return
   fi
@@ -62,27 +57,26 @@ nosync () {
   if mv "$original_file" "$nosync_file"; then
     ln -s "$nosync_file" "$original_file"
 
-    # Check if inside git repository
-    inside_git_repo=$(git rev-parse --is-inside-work-tree 2>/dev/null)
-
-    if [ "$inside_git_repo" ]; then
+    # Check if inside git repository and handle .gitignore update
+    if git rev-parse --is-inside-work-tree &>/dev/null; then
       log "Inside a git repository."
 
       # Get the root of the git repository
+      local git_root
       git_root=$(git rev-parse --show-toplevel)
 
       # Add *.nosync to .gitignore if non-interactive or prompt user
       if [ "$non_interactive" -eq 1 ]; then
-        answer="y"
+        answer="n"
       else
-        # Ask the user if they want to add *.nosync to .gitignore
-        read -rp "Do you want to add '*.nosync' to .gitignore at the root of the repository? [y/N] " answer
+        # Ask the user if they want to add *.nosync to .gitignore at the root of the repository
+        read -rp "Do you want to add '*.nosync' to .gitignore? [y/N] " answer
       fi
 
       case "$answer" in
         [yY][eE][sS]|[yY])
           # Add *.nosync to .gitignore at the root if not already present
-          gitignore_path="${git_root}/.gitignore"
+          local gitignore_path="${git_root}/.gitignore"
 
           if [ -e "$gitignore_path" ]; then
             if ! grep -qx '\*.nosync' "$gitignore_path"; then
@@ -108,16 +102,14 @@ nosync () {
   fi
 }
 
-# Parse flags
+# Parse flags and arguments
 while [[ $# -gt 0 ]]; do
   case "$1" in
     -v|--verbose)
       verbose=1
-      shift
       ;;
     -n|--non-interactive)
       non_interactive=1
-      shift
       ;;
     -h|--help)
       show_help
@@ -136,17 +128,17 @@ while [[ $# -gt 0 ]]; do
       break
       ;;
   esac
+  shift
 done
 
-# Ensure at least one argument is passed
+# Ensure at least one file argument is provided
 if [ $# -eq 0 ]; then
   echo "Error: No file arguments provided."
   show_help
   exit 1
 fi
 
-# Process all arguments
-while [ -n "$1" ]; do
-  nosync "$1"
-  shift
+# Process each file argument
+for file in "$@"; do
+  nosync "$file"
 done
