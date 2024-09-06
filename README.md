@@ -32,9 +32,10 @@ install nosync.sh /usr/local/bin/nosync
 nosync [options] <file1> [file2 ... fileN]
 
 Options:
-  -v, --verbose         Enable verbose output
-  -n, --non-interactive Skip interactive prompts
-  -h, --help            Show this help message
+  -v, --verbose                Enable verbose output
+  -n, --no, --non-interactive  Automatically respond no to all prompts
+  -y, --yes                    Automatically respond yes to all prompts
+  -h, --help                   Show this help message
 ```
 
 > [!NOTE]
