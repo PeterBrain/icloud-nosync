@@ -1,6 +1,8 @@
 name: Update Homebrew Tap
 
 on:
+  workflow_dispatch:
+
   push:
     tags:
       - '*'  # Trigger on all tags (without 'v')
