@@ -12,7 +12,7 @@ jobs:
     steps:
       # Step 1: Check out the repository that triggered the action
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0 # Ensure we fetch all tags
 
@@ -38,8 +38,9 @@ jobs:
       # Step 5: Update the Homebrew formula with the new version and hash
       - name: Update formula
         run: |
-          sed -i '' 's#url ".*"#url "https://github.com/PeterBrain/icloud-nosync/archive/refs/tags/${{ env.VERSION }}.tar.gz"#' Formula/icloud-nosync.rb
-          sed -i '' 's/sha256 ".*"/sha256 "${{ env.HASH }}"/' Formula/icloud-nosync.rb
+          cd homebrew-tap
+          sed -i 's#url ".*"#url "https://github.com/PeterBrain/icloud-nosync/archive/refs/tags/${{ env.VERSION }}.tar.gz"#' Formula/icloud-nosync.rb
+          sed -i 's/sha256 ".*"/sha256 "${{ env.HASH }}"/' Formula/icloud-nosync.rb
 
       # Step 6: Commit and push the changes to the Tap repository
       - name: Commit and push changes

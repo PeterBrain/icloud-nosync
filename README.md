@@ -1,5 +1,7 @@
 # iCloud-nosync
 
+[![Update Homebrew Tap](https://github.com/PeterBrain/icloud-nosync/actions/workflows/update-tap.yml/badge.svg)](https://github.com/PeterBrain/icloud-nosync/actions/workflows/update-tap.yml)
+
 Prevent a file or directory from syncing with iCloud by adding the nosync extension. This process appends the nosync extension to the file or directory and then creates a symlink that points back to the original name, preserving any naming conventions (e.g.: node_modules).
 
 > [!WARNING]
