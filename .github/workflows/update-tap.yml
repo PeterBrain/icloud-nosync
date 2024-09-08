@@ -1,55 +1,28 @@
-name: Update Homebrew Tap
+name: Bump Homebrew Formula
 
 on:
   workflow_dispatch:
 
   push:
     tags:
-      - '*'  # Trigger on all tags (without 'v')
+      - '*'  # Trigger on all tags
 
 jobs:
   update-tap:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Check out the repository that triggered the action
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      # Step 1: Use action to update Homebrew formula
+      - name: Update Homebrew formula
+        uses: dawidd6/action-homebrew-bump-formula@v3
         with:
-          fetch-depth: 0 # Ensure we fetch all tags
-
-      # Step 2: Extract the version from the tag
-      - name: Get version from tag
-        id: get_version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
-
-      # Step 3: Download the tarball and calculate its SHA-256 hash
-      - name: Calculate SHA-256
-        run: |
-          wget https://github.com/PeterBrain/icloud-nosync/archive/refs/tags/${{ env.VERSION }}.tar.gz -O icloud-nosync.tar.gz
-          sha256sum icloud-nosync.tar.gz | awk '{ print $1 }' > sha256.txt
-          HASH=$(cat sha256.txt)
-          echo "HASH=$HASH" >> $GITHUB_ENV
-
-      # Step 4: Clone the Homebrew Tap repository
-      - name: Clone Tap repository
-        run: |
-          git clone https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/PeterBrain/homebrew-tap.git
-          cd homebrew-tap
-
-      # Step 5: Update the Homebrew formula with the new version and hash
-      - name: Update formula
-        run: |
-          cd homebrew-tap
-          sed -i 's#url ".*"#url "https://github.com/PeterBrain/icloud-nosync/archive/refs/tags/${{ env.VERSION }}.tar.gz"#' Formula/icloud-nosync.rb
-          sed -i 's/sha256 ".*"/sha256 "${{ env.HASH }}"/' Formula/icloud-nosync.rb
-
-      # Step 6: Commit and push the changes to the Tap repository
-      - name: Commit and push changes
-        run: |
-          cd homebrew-tap
-          git config --global user.email "github-actions@github.com"
-          git config --global user.name "GitHub Actions"
-          git add Formula/icloud-nosync.rb
-          git commit -m "Update icloud-nosync to version ${{ env.VERSION }}"
-          git push origin main
+          token: ${{ secrets.ACTIONS_PERSONAL_ACCESS_TOKEN }} # Required, custom GitHub access token with the 'public_repo' and 'workflow' scopes
+          user_name: github-actions # Optional, will commit with this user name
+          user_email: github-actions@github.com # Optional, will commit with this user email
+          # org: ORG # Optional, will create tap repo fork in organization
+          no_fork: false # Optional, use the origin repository instead of forking
+          tap: PeterBrain/homebrew-tap # Optional, defaults to homebrew/core
+          formula: icloud-nosync # Formula name, required
+          tag: ${{ github.ref }} # Optional, will be determined automatically
+          revision: ${{ github.sha }} # Optional, will be determined automatically
+          force: false # Optional, if don't want to check for already open PRs
