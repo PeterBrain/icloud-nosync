@@ -3,6 +3,7 @@
 # Default flag values
 verbose=0
 non_interactive=0 # 0 - interactive; 1 - automatic no; 2 - automatic yes
+hide_file=0 # hide .nosync
 
 # Display help message
 show_help() {
@@ -14,6 +15,7 @@ show_help() {
   echo "  -v, --verbose                Enable verbose output"
   echo "  -n, --no, --non-interactive  Automatically respond no to all prompts"
   echo "  -y, --yes                    Automatically respond yes to all prompts"
+  echo "  -x, --hidden                 Hide the .nosync file with chflags"
   echo "  -h, --help                   Show this help message"
 }
 
@@ -31,6 +33,7 @@ log() {
 nosync () {
   original_file="$1"
   nosync_file="${original_file}.nosync"
+  linked_file=""
   git_root=""
   gitignore_path=""
   answer=""
@@ -101,6 +104,27 @@ nosync () {
       esac
     fi
 
+    # Ask the user if they want to make the .nosync file hidden using the hidden attribute
+    if [ "$hide_file" -eq 1 ]; then
+      if [ "$non_interactive" -eq 1 ]; then
+        answer="n"
+      elif [ "$non_interactive" -eq 2 ]; then
+        answer="y"
+      else
+        read -rp "Do you want to hide the .nosync file? [y/N] " answer
+      fi
+
+      case "$answer" in
+        [yY][eE][sS]|[yY])
+          chflags hidden "$nosync_file"
+          log "The .nosync file has been hidden using the hidden attribute."
+          ;;
+        *)
+          log "Skipped hiding the .nosync file."
+          ;;
+      esac
+    fi
+
     log "Processed: '$original_file' -> '$nosync_file'"
   else
     error_log "Failed to move '$original_file'. Skipping."
@@ -108,37 +132,35 @@ nosync () {
   fi
 }
 
-# Parse flags and arguments
-while [ $# -gt 0 ]; do
-  case "$1" in
-    -v|--verbose)
-      verbose=1
-      ;;
-    -n|--no|--non-interactive)
-      non_interactive=1
-      ;;
-    -y|--yes)
-      non_interactive=2
-      ;;
-    -h|--help)
-      show_help
-      exit 0
-      ;;
-    --) # End of all options
-      shift
-      break
-      ;;
-    -*)
-      error_log "Unknown option: $1"
+# Parse flags and arguments using getopts
+while getopts ":vnyhx-:" opt; do
+  case $opt in
+    v) verbose=1 ;;
+    n) non_interactive=1 ;;
+    y) non_interactive=2 ;;
+    x) hide_file=1 ;;
+    h) show_help; exit 0 ;;
+    -)
+      case "${OPTARG}" in
+        verbose) verbose=1 ;;
+        no|non-interactive) non_interactive=1 ;;
+        yes) non_interactive=2 ;;
+        hidden) hide_file=1 ;;
+        help) show_help; exit 0 ;;
+        *)
+          error_log "Unknown option --${OPTARG}"
+          show_help
+          exit 1
+          ;;
+      esac ;;
+    \?)
+      error_log "Unknown option: -$OPTARG"
       show_help
       exit 1
       ;;
-    *) # No more options, treat remaining arguments as files
-      break
-      ;;
   esac
-  shift
 done
+shift $((OPTIND - 1))
 
 # Ensure at least one file argument is provided
 if [ $# -eq 0 ]; then

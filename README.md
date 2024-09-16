@@ -7,6 +7,13 @@ Prevent a file or directory from syncing with iCloud by adding the nosync extens
 > [!WARNING]
 > Please read all of the instructions carefully before use.
 
+## Features
+
+* prevent file or folder from syncing with iCloud
+* add to gitignore
+* hide .nosync file or folder with chflags
+* non-interactive mode
+
 ## Install
 
 ### Homebrew
@@ -37,6 +44,7 @@ Options:
   -v, --verbose                Enable verbose output
   -n, --no, --non-interactive  Automatically respond no to all prompts
   -y, --yes                    Automatically respond yes to all prompts
+  -x, --hidden                 Hide the .nosync file with chflags
   -h, --help                   Show this help message
 ```
 
@@ -47,9 +55,10 @@ Options:
 
 ## Caveats
 
+* **OS**: This script will only work on macOS.
 * **Renaming**: If you need to rename a file or directory with the nosync extension, you'll need to recreate the symlink. Although Finder can still locate the renamed file or directory through the old symlink, the symlink itself will continue pointing to the original location, which isn't the case in Terminal.
   * My recommendation is to delete the symlink, remove the nosync extension, and then rerun the command.
-* **Git**: ~~Currently, both the symlink and the file or directory will be included in any repository unless they’re specifically excluded via `.gitignore`. Updates to this process are coming soon.~~ Symlink will still be added.
+* **Git**: If the file or folder is in a git repository and the .nosync file or extension is added to `.gitignore`, the symlink will still be tracked.
 * **Undo**: There’s no dedicated undo function. To reverse an action, simply delete the symlink and remove the nosync extension from the file or folder.
 * **Files**: Files with the nosync extension wont open with their associated application anymore. Images wont be opened in preview, docs won't start Word or Pages.
   * Avoid using nosync on files. Use it on directories whenever possible.
