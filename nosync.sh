@@ -104,25 +104,10 @@ nosync () {
       esac
     fi
 
-    # Ask the user if they want to make the .nosync file hidden using the hidden attribute
+    # Hide nosync file if requested
     if [ "$hide_file" -eq 1 ]; then
-      if [ "$non_interactive" -eq 1 ]; then
-        answer="n"
-      elif [ "$non_interactive" -eq 2 ]; then
-        answer="y"
-      else
-        read -rp "Do you want to hide the .nosync file? [y/N] " answer
-      fi
-
-      case "$answer" in
-        [yY][eE][sS]|[yY])
-          chflags hidden "$nosync_file"
-          log "The .nosync file has been hidden using the hidden attribute."
-          ;;
-        *)
-          log "Skipped hiding the .nosync file."
-          ;;
-      esac
+      chflags hidden "$nosync_file"
+      log "$nosync_file has been hidden using the hidden attribute."
     fi
 
     log "Processed: '$original_file' -> '$nosync_file'"
