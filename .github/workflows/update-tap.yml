@@ -19,6 +19,7 @@ jobs:
           token: ${{ secrets.ACTIONS_PERSONAL_ACCESS_TOKEN }} # Required, custom GitHub access token with the 'public_repo' and 'workflow' scopes
           user_name: github-actions # Optional, will commit with this user name
           user_email: github-actions@github.com # Optional, will commit with this user email
+          message: Bump formula version to ${{ github.ref }}. Checksum ${{ github.sha }}
           # org: ORG # Optional, will create tap repo fork in organization
           no_fork: false # Optional, use the origin repository instead of forking
           tap: PeterBrain/homebrew-tap # Optional, defaults to homebrew/core
