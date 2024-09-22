@@ -1,110 +1,76 @@
 #!/usr/bin/env bash
 
 # Default flag values
-verbose=0 # 0 - silent (default), 1 - verbose
-non_interactive=0 # 0 - interactive; 1 - automatic no; 2 - automatic yes
-undo=0 # 0 - nosync, 1 - undo nosync
-hide_file=0 # hide .nosync file
-exit_status=0 # Track script status: 0 - success, >0 - failure
+verbose=0
+non_interactive=0  # 0 - interactive; 1 - automatic no; 2 - automatic yes
+undo=0             # 0 - nosync, 1 - undo nosync
+hide_file=0        # Hide .nosync file
+exit_status=0
 
 # Display help message
-show_help() {
-  echo "nosync - Add a .nosync extension to files and create a symlink."
-  echo
-  echo "Usage: nosync [options] <file1> [file2 ... fileN]"
-  echo
-  echo "Options:"
-  echo "  -v, --verbose                Enable verbose output"
-  echo "  -n, --no, --non-interactive  Automatically respond no to all prompts"
-  echo "  -y, --yes                    Automatically respond yes to all prompts"
-  echo "  -u, --undo                   Undo symlink and .nosync extension"
-  echo "  -x, --hidden                 Hide the .nosync file with chflags"
-  echo "  -h, --help                   Show this help message"
+show_help () {
+  cat << EOF
+Usage: nosync [options] <file1> [file2 ... fileN]
+
+Options:
+  -v, --verbose                Enable verbose output
+  -n, --no, --non-interactive  Automatically respond no to all prompts
+  -y, --yes                    Automatically respond yes to all prompts
+  -u, --undo                   Undo symlink and .nosync extension
+  -x, --hidden                 Hide the .nosync file with chflags
+  -h, --help                   Show this help message
+EOF
 }
 
-# Error log function for non-verbose but critical errors
-error_log() {
-  echo "Error:" "$@" >&2
-}
-
-# Log messages in verbose mode
-log() {
-  [ "$verbose" -eq 1 ] && echo "$@"
+# Consolidated logging function for both verbose and error handling
+log () {
+  if [ "$1" == "error" ]; then
+    shift
+    echo "Error: $@" >&2
+  elif [ "$verbose" -eq 1 ]; then
+    echo "$@"
+  fi
 }
 
 # Add .nosync extension and create a symbolic link
 nosync () {
-  original_file="$1"
-  nosync_file="${original_file}.nosync"
-  linked_file=""
-  git_root=""
-  gitignore_path=""
-  answer=""
+  local original_file="$1"
+  local nosync_file="${original_file}.nosync"
 
   # Check if the file is a symlink
   if [ -L "$original_file" ]; then
+    local linked_file
     linked_file=$(readlink "$original_file")
 
     if [ ! -e "$linked_file" ]; then
-      log "Warning: '$original_file' is a symlink to a non-existent file '$linked_file'."
+      log "error" "Warning: '$original_file' is a symlink to non-existent '$linked_file'."
       return 1
-    elif [ "$linked_file" = "$nosync_file" ]; then
-      log "Skipping: '$original_file' is already a symlink to '$nosync_file'."
+    elif [ "$linked_file" == "$nosync_file" ]; then
+      log "Skipping: '$original_file' is already linked to '$nosync_file'."
       return 0
     else
-      error_log "'$original_file' is a symlink to '$linked_file', not '$nosync_file'."
+      log "error" "'$original_file' is a symlink to '$linked_file', not '$nosync_file'."
       return 1
     fi
   fi
 
-  # Check if the file already has a .nosync extension
+  # If file already has .nosync extension
   if [ "${original_file%.nosync}" != "$original_file" ]; then
-    log "Skipping: '$original_file' already has a .nosync extension."
+    log "Skipping: '$original_file' already has .nosync extension."
     return 0
   fi
 
-  # Move the original file and create a symbolic link
+  # Move the original file and create a symlink
   if mv "$original_file" "$nosync_file"; then
     if ! ln -s "$nosync_file" "$original_file"; then
-      error_log "Failed to create symlink for '$nosync_file'."
+      log "error" "Failed to create symlink for '$nosync_file'."
       return 1
     fi
 
     # Check if inside git repository and handle .gitignore update
     if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
       log "Inside a git repository."
-
-      # Get the root of the git repository
-      git_root=$(git rev-parse --show-toplevel)
-
-      # Add *.nosync to .gitignore if non-interactive or prompt user
-      case "$non_interactive" in
-        1) answer="n" ;;
-        2) answer="y" ;;
-        *) read -rp "Do you want to add '*.nosync' to .gitignore? [y/N] " answer ;;
-      esac
-
-      case "$answer" in
-        [yY][eE][sS]|[yY])
-          # Add *.nosync to .gitignore at the root if not already present
-          gitignore_path="${git_root}/.gitignore"
-
-          if [ -e "$gitignore_path" ]; then
-            if ! grep -qx '\*.nosync' "$gitignore_path"; then
-              echo "*.nosync" >> "$gitignore_path"
-              log "Added '*.nosync' to $gitignore_path."
-            else
-              log "'*.nosync' is already in $gitignore_path."
-            fi
-          else
-            echo "*.nosync" > "$gitignore_path"
-            log "Created $gitignore_path and added '*.nosync'."
-          fi
-          ;;
-        *)
-          log "Skipped adding '*.nosync' to .gitignore."
-          ;;
-      esac
+      handle_gitignore "$original_file"
     fi
 
     # Hide nosync file if requested
@@ -115,40 +81,58 @@ nosync () {
 
     log "Processed: '$original_file' -> '$nosync_file'"
   else
-    error_log "Failed to move '$original_file'. Skipping."
+    log "error" "Failed to move '$original_file'. Skipping."
     return 1
   fi
 }
 
-# Remove symbolic link and .nosync extension (undo nosync)
-cnyson () {
-  symlink_file="$1"
-  nosync_file="${symlink_file}.nosync"
+# Handle gitignore update for .nosync files
+handle_gitignore () {
+  local git_root
+  git_root=$(git rev-parse --show-toplevel)
+  local gitignore_path="${git_root}/.gitignore"
+  local answer
 
-  # Check if the file is a symlink
+  case "$non_interactive" in
+    1) answer="n" ;;
+    2) answer="y" ;;
+    *) read -rp "Add '*.nosync' to .gitignore? [y/N]: " answer ;;
+  esac
+
+  case "$answer" in
+    [yY][eE][sS]|[yY])
+      if [ -f "$gitignore_path" ] && ! grep -qx '*.nosync' "$gitignore_path"; then
+        echo "*.nosync" >> "$gitignore_path"
+        log "Added '*.nosync' to $gitignore_path."
+      elif [ ! -f "$gitignore_path" ]; then
+        echo "*.nosync" > "$gitignore_path"
+        log "Created $gitignore_path and added '*.nosync'."
+      else
+        log "'*.nosync' already in $gitignore_path."
+      fi
+      ;;
+    *)
+      log "Skipped adding '*.nosync' to .gitignore."
+      ;;
+  esac
+}
+
+# Undo .nosync by removing the symlink and restoring the original file
+cnyson () {
+  local symlink_file="$1"
+  local nosync_file="${symlink_file}.nosync"
+
   if [ -L "$symlink_file" ]; then
+    local linked_file
     linked_file=$(readlink "$symlink_file")
 
-    if [ "$linked_file" = "$nosync_file" ]; then
+    if [ "$linked_file" == "$nosync_file" ]; then
       log "Restoring '$symlink_file' from '$nosync_file'."
-
-      # Check if the .nosync file exists
       if [ -e "$nosync_file" ]; then
-        # Remove symlink and restore original file
-        if rm "$symlink_file"; then
-          if mv "$nosync_file" "$symlink_file"; then
-            chflags nohidden "$symlink_file"
-            log "Successfully restored '$symlink_file' from '$nosync_file'."
-          else
-            error_log "Failed to restore original file from '$nosync_file'."
-            return 1
-          fi
-        else
-          error_log "Failed to remove symlink '$symlink_file'."
-          return 1
-        fi
+        rm "$symlink_file" && mv "$nosync_file" "$symlink_file" && chflags nohidden "$symlink_file"
+        log "Restored '$symlink_file'."
       else
-        error_log "The destination file '$nosync_file' does not exist. Cannot restore."
+        log "error" "The destination file '$nosync_file' does not exist. Cannot restore."
         return 1
       fi
     else
@@ -177,24 +161,16 @@ while getopts ":vnyuxh-:" opt; do
         undo) undo=1 ;;
         hidden) hide_file=1 ;;
         help) show_help; exit 0 ;;
-        *)
-          error_log "Unknown option --${OPTARG}"
-          show_help
-          exit 1
-          ;;
+        *) log "error" "Unknown option --${OPTARG}"; show_help; exit 1 ;;
       esac ;;
-    \?)
-      error_log "Unknown option: -$OPTARG"
-      show_help
-      exit 1
-      ;;
+    \?) log "error" "Unknown option: -$OPTARG"; show_help; exit 1 ;;
   esac
 done
 shift $((OPTIND - 1))
 
 # Ensure at least one file argument is provided
 if [ $# -eq 0 ]; then
-  error_log "No file arguments provided."
+  log "error" "No file arguments provided."
   show_help
   exit 1
 fi
@@ -202,9 +178,9 @@ fi
 # Process each file argument
 for file in "$@"; do
   if [ "$undo" -eq 1 ]; then
-    cnyson "$file" && exit_status=0 || exit_status=1
+    cnyson "$file" || exit_status=1
   else
-    nosync "$file" && exit_status=0 || exit_status=1
+    nosync "$file" || exit_status=1
   fi
 done
 
