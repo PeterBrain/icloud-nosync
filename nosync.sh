@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 
 # Default flag values
-verbose=0
+verbose=0 # 0 - silent (default), 1 - verbose
 non_interactive=0 # 0 - interactive; 1 - automatic no; 2 - automatic yes
-hide_file=0 # hide .nosync
+undo=0 # 0 - nosync, 1 - undo nosync
+hide_file=0 # hide .nosync file
+exit_status=0 # Track script status: 0 - success, >0 - failure
 
 # Display help message
 show_help() {
@@ -15,6 +17,7 @@ show_help() {
   echo "  -v, --verbose                Enable verbose output"
   echo "  -n, --no, --non-interactive  Automatically respond no to all prompts"
   echo "  -y, --yes                    Automatically respond yes to all prompts"
+  echo "  -u, --undo                   Undo symlink and .nosync extension"
   echo "  -x, --hidden                 Hide the .nosync file with chflags"
   echo "  -h, --help                   Show this help message"
 }
@@ -117,12 +120,53 @@ nosync () {
   fi
 }
 
+# Remove symbolic link and .nosync extension (undo nosync)
+cnyson () {
+  symlink_file="$1"
+  nosync_file="${symlink_file}.nosync"
+
+  # Check if the file is a symlink
+  if [ -L "$symlink_file" ]; then
+    linked_file=$(readlink "$symlink_file")
+
+    if [ "$linked_file" = "$nosync_file" ]; then
+      log "Restoring '$symlink_file' from '$nosync_file'."
+
+      # Check if the .nosync file exists
+      if [ -e "$nosync_file" ]; then
+        # Remove symlink and restore original file
+        if rm "$symlink_file"; then
+          if mv "$nosync_file" "$symlink_file"; then
+            chflags nohidden "$symlink_file"
+            log "Successfully restored '$symlink_file' from '$nosync_file'."
+          else
+            error_log "Failed to restore original file from '$nosync_file'."
+            return 1
+          fi
+        else
+          error_log "Failed to remove symlink '$symlink_file'."
+          return 1
+        fi
+      else
+        error_log "The destination file '$nosync_file' does not exist. Cannot restore."
+        return 1
+      fi
+    else
+      log "'$symlink_file' is not pointing to '$nosync_file'. Skipping."
+      return 1
+    fi
+  else
+    log "'$symlink_file' is not a symlink. Skipping."
+  fi
+}
+
 # Parse flags and arguments using getopts
-while getopts ":vnyhx-:" opt; do
+while getopts ":vnyuxh-:" opt; do
   case $opt in
     v) verbose=1 ;;
     n) non_interactive=1 ;;
     y) non_interactive=2 ;;
+    u) undo=1 ;;
     x) hide_file=1 ;;
     h) show_help; exit 0 ;;
     -)
@@ -130,6 +174,7 @@ while getopts ":vnyhx-:" opt; do
         verbose) verbose=1 ;;
         no|non-interactive) non_interactive=1 ;;
         yes) non_interactive=2 ;;
+        undo) undo=1 ;;
         hidden) hide_file=1 ;;
         help) show_help; exit 0 ;;
         *)
@@ -156,5 +201,11 @@ fi
 
 # Process each file argument
 for file in "$@"; do
-  nosync "$file"
+  if [ "$undo" -eq 1 ]; then
+    cnyson "$file" && exit_status=0 || exit_status=1
+  else
+    nosync "$file" && exit_status=0 || exit_status=1
+  fi
 done
+
+exit $exit_status
