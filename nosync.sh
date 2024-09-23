@@ -26,7 +26,7 @@ EOF
 log () {
   if [ "$1" == "error" ]; then
     shift
-    echo "Error: $@" >&2
+    echo "Error:" "$@" >&2
   elif [ "$verbose" -eq 1 ]; then
     echo "$@"
   fi
@@ -101,7 +101,7 @@ handle_gitignore () {
 
   case "$answer" in
     [yY][eE][sS]|[yY])
-      if [ -f "$gitignore_path" ] && ! grep -qx '*.nosync' "$gitignore_path"; then
+      if [ -f "$gitignore_path" ] && ! grep -qx '\*.nosync' "$gitignore_path"; then
         echo "*.nosync" >> "$gitignore_path"
         log "Added '*.nosync' to $gitignore_path."
       elif [ ! -f "$gitignore_path" ]; then
