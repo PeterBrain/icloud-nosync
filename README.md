@@ -34,6 +34,7 @@ Clone this repository
 
 ```bash
 install nosync.sh /usr/local/bin/nosync
+cp -r ./workflows/* ~/Library/Services/
 ```
 
 ## Usage
@@ -59,11 +60,14 @@ Options:
 
 * **OS**: This script will only work on macOS.
 * **Renaming**: If you need to rename a file or directory with the nosync extension, you'll need to recreate the symlink. Although Finder can still locate the renamed file or directory through the old symlink, the symlink itself will continue pointing to the original location, which isn't the case in Terminal.
-  * My recommendation is to delete the symlink, remove the nosync extension, and then rerun the command.
+  * It's recommended to delete the symlink, remove the nosync extension, and then rerun the nosync command.
 * **Git**: If the file or folder is in a git repository and the .nosync file or extension is added to `.gitignore`, the symlink will still be tracked.
-* **Undo**: If the symlink name differs from the .nosync name, the symlink will be left unchanged. The undo process does not involve or modify the `.gitignore` file.
+* **Undo**:
+  1. If the symlink name differs from the .nosync name, the symlink will be left unchanged. The undo process does not involve or modify the `.gitignore` file.
+  2. Undo works with the symlink only (atm).
 * **Files**: Files with the nosync extension wont open with their associated application anymore. Images wont be opened in preview, docs won't start Word or Pages.
   * Avoid using nosync on files. Use it on directories whenever possible.
+* **Quick Action**: Service workflows may need to be manually enabled. Refer to this instruction: [https://support.apple.com/guide/automator/use-quick-action-workflows-aut73234890a/mac](https://support.apple.com/guide/automator/use-quick-action-workflows-aut73234890a/mac#aut067d4e77d)
 
 > [!CAUTION]
 > The list contains only the known limitations of this program. Proceed with caution!
@@ -84,5 +88,5 @@ brew uninstall peterbrain/tap/icloud-nosync
 
 This is only possible if nosync was installed manually.
 ```bash
-rm /usr/local/bin/nosync
+rm /usr/local/bin/nosync ~/Library/Services/nosync_*
 ```
