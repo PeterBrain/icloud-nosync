@@ -119,28 +119,64 @@ handle_gitignore () {
 
 # Undo .nosync by removing the symlink and restoring the original file
 cnyson () {
-  local symlink_file="$1"
-  local nosync_file="${symlink_file}.nosync"
+  local file="$1"
+  local nosync_file="${file%.nosync}.nosync"
+  local symlink_file="${file%.nosync}"
 
-  if [ -L "$symlink_file" ]; then
+  if [ -L "$file" ]; then
+    # Case 1: file is a symlink
     local linked_file
-    linked_file=$(readlink "$symlink_file")
+    linked_file=$(readlink "$file")
 
     if [ "$linked_file" == "$nosync_file" ]; then
-      log "Restoring '$symlink_file' from '$nosync_file'."
+      log "Restoring '$file' from '$nosync_file'."
       if [ -e "$nosync_file" ]; then
-        rm "$symlink_file" && mv "$nosync_file" "$symlink_file" && chflags nohidden "$symlink_file"
-        log "Restored '$symlink_file'."
+        rm "$file" && mv "$nosync_file" "$file" && chflags nohidden "$file"
+        log "Restored '$file'."
       else
         log "error" "The destination file '$nosync_file' does not exist. Cannot restore."
         return 1
       fi
     else
-      log "'$symlink_file' is not pointing to '$nosync_file'. Skipping."
+      log "error" "Symlink '$file' points to '$linked_file', not '$nosync_file'."
+      return 1
+    fi
+  elif [ -L "$symlink_file" ]; then
+    # Case 2: .nosync file is provided, matching symlink exists and points to it
+    local linked_file
+    linked_file=$(readlink "$symlink_file")
+
+    if [ "$linked_file" == "$nosync_file" ]; then
+      log "Restoring '$symlink_file' from '$nosync_file'."
+      if rm "$symlink_file" && mv "$nosync_file" "$symlink_file"; then
+        chflags nohidden "$symlink_file"
+        log "Restored '$symlink_file'."
+      else
+        log "error" "Failed to restore '$symlink_file' from '$nosync_file'."
+        return 1
+      fi
+    else
+      log "error" "Symlink '$symlink_file' points to '$linked_file', not '$nosync_file'."
+      return 1
+    fi
+  elif [ -e "$nosync_file" ]; then
+    # Case 3: .nosync file provided and no symlink exists
+    if [ -e "$symlink_file" ]; then
+      log "error" "A file or folder named '$symlink_file' already exists. Cannot restore."
+      return 1
+    fi
+
+    log "Restoring '$symlink_file' from '$nosync_file'."
+    if mv "$nosync_file" "$symlink_file"; then
+      chflags nohidden "$symlink_file"
+      log "Restored '$symlink_file'."
+    else
+      log "error" "Failed to restore '$symlink_file' from '$nosync_file'."
       return 1
     fi
   else
-    log "'$symlink_file' is not a symlink. Skipping."
+    log "error" "'$file' is not a symlink and no .nosync file exists. Skipping."
+    return 1
   fi
 }
 
