@@ -21,7 +21,7 @@ jobs:
           user_email: github-actions@github.com # Optional, will commit with this user email
           message: | # Optional, will commit with this message. Built-in context variables are supported.
             Homebrew formula update for tag [${{ github.ref_name }}](https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}).
-            Triggered by @${{ github.actor }} with commit [${{ github.sha }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }}).
+            Triggered by @${{ github.actor }} with commit ${{ github.repository }}@${{ github.sha }}.
             For additional details see https://github.com/${{ github.repository }}/tree/${{ github.ref_name }}.
           # org: ORG # Optional, will create tap repo fork in organization
           no_fork: false # Optional, use the origin repository instead of forking
