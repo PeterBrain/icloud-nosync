@@ -19,7 +19,10 @@ jobs:
           token: ${{ secrets.ACTIONS_PERSONAL_ACCESS_TOKEN }} # Required, custom GitHub access token with the 'public_repo' and 'workflow' scopes
           user_name: github-actions # Optional, will commit with this user name
           user_email: github-actions@github.com # Optional, will commit with this user email
-          message: "Triggered by ${{ github.event_name }} on branch ${{ github.ref }} with commit ${{ github.sha }}" # Optional, will commit with this message. Built-in context variables are supported.
+          message: | # Optional, will commit with this message. Built-in context variables are supported.
+            Homebrew formula update for tag [${{ github.ref_name }}](https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}).
+            Triggered by @${{ github.actor }} with commit [${{ github.sha }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }}).
+            For additional details see https://github.com/${{ github.repository }}/tree/${{ github.ref_name }}.
           # org: ORG # Optional, will create tap repo fork in organization
           no_fork: false # Optional, use the origin repository instead of forking
           tap: PeterBrain/homebrew-tap # Optional, defaults to homebrew/core
