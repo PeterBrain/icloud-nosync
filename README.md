@@ -10,12 +10,12 @@ Background story: iCloud can become very CPU-intensive when handling a large num
 
 ## Features
 
-* Prevent file or folder from syncing with iCloud
-* Add to gitignore (optional)
-* Undo symlink and .nosync extension
-* Hide .nosync file or folder with chflags (optional)
-* Non-interactive mode
-* Finder quick actions
+- Prevent file or folder from syncing with iCloud
+- Add to gitignore (optional)
+- Undo symlink and .nosync extension
+- Hide .nosync file or folder with chflags (optional)
+- Non-interactive mode
+- Finder quick actions
 
 ## Install
 
@@ -24,11 +24,18 @@ Background story: iCloud can become very CPU-intensive when handling a large num
 ```bash
 brew tap peterbrain/tap
 brew install icloud-nosync
+cp -r /usr/local/opt/icloud-nosync/workflows/* ~/Library/Services/
 ```
+
 or
+
 ```bash
 brew install peterbrain/tap/icloud-nosync
+cp -r /usr/local/opt/icloud-nosync/workflows/* ~/Library/Services/
 ```
+
+> [!NOTE]
+> Workflows for Finder Quick Actions require to be copied to `~/Library/Services` manually. This is due to a security limitation of the homebrew installer. Instructions to do so are displayed during installation.
 
 ### Manually
 
@@ -67,23 +74,24 @@ Options:
 
 ## Caveats
 
-* **OS**:
-  * Work on macOS for iCloud only.
-  * Minimum version is macOS Sierra 10.12.
-  * Other cloud services (e.g. OneDrive, Dropbox, Google Drive) are unsupported.
-* **Files**:
-  * Files with the nosync extension wont open with their associated application anymore. Images wont be opened in preview, docs won't start Word or Pages. Avoid using nosync on files. Use it on directories whenever possible.
-* **Renaming**:
-  * If you need to rename a file or directory with the nosync extension, you'll need to recreate the symlink. Although Finder can still locate the renamed file or directory through the old symlink, the symlink itself will continue pointing to the original location, which isn't the case in Terminal. It's recommended to delete the symlink, remove the nosync extension, and then rerun the nosync command.
-* **Git**:
-  * If the file or folder is in a git repository and the .nosync file or extension is added to `.gitignore`, the symlink will still be tracked.
-* **Undo**:
-  * If the symlink is provided and it does not point to the corresponding `.nosync` file, the undo process will be aborted.
-  * If the `.nosync` file is provided and the matching symlink (by name) does not point to it, the undo process will be aborted.
-  * If the `.nosync` file is provided and there is no matching symlink (e.g.: manually created), the undo process will try to restore the file.
-  * The undo process does not involve or modify the `.gitignore` file.
-* **Quick Action**:
-  * Service workflows may need to be manually enabled. Please refer to these instructions: [https://support.apple.com/guide/automator/use-quick-action-workflows-aut73234890a/mac](https://support.apple.com/guide/automator/use-quick-action-workflows-aut73234890a/mac#aut067d4e77d)
+- **OS**:
+  - Work on macOS for iCloud only.
+  - Minimum version is macOS Sierra 10.12.
+  - Other cloud services (e.g. OneDrive, Dropbox, Google Drive) are unsupported.
+- **Files**:
+  - Files with the nosync extension wont open with their associated application anymore. Images wont be opened in preview, docs won't start Word or Pages. Avoid using nosync on files. Use it on directories whenever possible.
+- **Renaming**:
+  - If you need to rename a file or directory with the nosync extension, you'll need to recreate the symlink. Although Finder can still locate the renamed file or directory through the old symlink, the symlink itself will continue pointing to the original location, which isn't the case in Terminal. It's recommended to delete the symlink, remove the nosync extension, and then rerun the nosync command.
+- **Git**:
+  - If the file or folder is in a git repository and the .nosync file or extension is added to `.gitignore`, the symlink will still be tracked.
+- **Undo**:
+  - If the symlink is provided and it does not point to the corresponding `.nosync` file, the undo process will be aborted.
+  - If the `.nosync` file is provided and the matching symlink (by name) does not point to it, the undo process will be aborted.
+  - If the `.nosync` file is provided and there is no matching symlink (e.g.: manually created), the undo process will try to restore the file.
+  - The undo process does not involve or modify the `.gitignore` file.
+- **Quick Action**:
+  - Workflows require to be copied to `~/Library/Services` manually. This is due to a security limitation of the homebrew installer. Instructions to do so are displayed during install with homebrew.
+  - Service workflows may need to be manually enabled. Please refer to these instructions: [https://support.apple.com/guide/automator/use-quick-action-workflows-aut73234890a/mac](https://support.apple.com/guide/automator/use-quick-action-workflows-aut73234890a/mac#aut067d4e77d)
 
 > [!CAUTION]
 > The list contains only the known limitations of this program. Proceed with caution!
@@ -94,15 +102,20 @@ Options:
 
 ```bash
 brew uninstall icloud-nosync
+rm ~/Library/Services/nosync_*
 ```
+
 or
+
 ```bash
 brew uninstall peterbrain/tap/icloud-nosync
+rm ~/Library/Services/nosync_*
 ```
 
 ### Manually
 
 This is only possible if nosync was installed manually.
+
 ```bash
 rm /usr/local/bin/nosync ~/Library/Services/nosync_*
 ```
