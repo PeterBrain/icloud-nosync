@@ -24,6 +24,7 @@ Background story: iCloud can become very CPU-intensive when handling a large num
 ```bash
 brew tap peterbrain/tap
 brew install icloud-nosync
+
 cp -r /usr/local/opt/icloud-nosync/workflows/* ~/Library/Services/
 ```
 
@@ -31,6 +32,7 @@ or
 
 ```bash
 brew install peterbrain/tap/icloud-nosync
+
 cp -r /usr/local/opt/icloud-nosync/workflows/* ~/Library/Services/
 ```
 
@@ -75,9 +77,9 @@ Options:
 ## Caveats
 
 - **OS**:
-  - Work on macOS for iCloud only.
-  - Minimum version is macOS Sierra 10.12.
-  - Other cloud services (e.g. OneDrive, Dropbox, Google Drive) are unsupported.
+  - Works on macOS for iCloud only.
+  - Minimum OS version: macOS Sierra (10.12)
+  - Any other cloud storage solution than iCloud is unsupported (e.g. OneDrive, Dropbox, Google Drive).
 - **Files**:
   - Files with the nosync extension wont open with their associated application anymore. Images wont be opened in preview, docs won't start Word or Pages. Avoid using nosync on files. Use it on directories whenever possible.
 - **Renaming**:
